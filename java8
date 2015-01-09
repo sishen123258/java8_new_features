@@ -1,0 +1,290 @@
+总结：java8中汲取了很多函数式编程的思想，从scala中借鉴了许多（ps：可能是害怕scala威胁到他的统治地位了吧(*^__^*) ）
+
+1，Lambda expression
+     为java中添加了函数式编程思想，只能用于功能接口（只包含一个方法的接口）中。
+     Lambda 表达式格式:
+          parameter -> expression body
+   
+   用途：简化代码，让代码逻辑更加清晰，
+   
+   用法示例：
+
+public class LambdaExpression {
+
+        public static void main(String[] args) {
+
+               // 含有类型声明的Lambda表达式
+              MathOperation op = ( double a , double b) -> a / b;
+              MathOperation op2 = ( a, b) -> a / b;
+
+              System. out.println(op .operation(1, 2));
+              System. out.println(op2 .operation(1, 2));
+
+               // return语句可有可无
+              MathOperation op3 = ( a, b) -> {
+                      return a * b ;
+              };
+              MathOperation op4 = ( a, b) -> a * b;
+              
+              System. out.println(op3 .operation(1, 2));
+              System. out.println(op4 .operation(1, 2));
+
+               //参数也可不带括号
+              GreetingService gs= message->System. out.println(message );
+               gs.sayMessage( "YUE");
+       }
+        //功能接口
+        interface MathOperation {
+               double operation(double a, double b);
+              
+       }
+        interface GreetingService {
+             void sayMessage(String message );
+          }
+}
+
+用途示例：
+button.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        ui.dazzle(e.getModifiers());
+    }
+});
+改进后：
+button.addActionListener(e -> { ui.dazzle(e.getModifiers()); });
+避免了抽象类这种冗余的代码的使用
+
+2，Method references
+     可以将方法体直接作为参数传递
+     方法索引使用方法的名称指向方法体，使用符号“：：”作为方法索引记号，可以使用的方法有以下三种：
+     1，静态方法
+     2，实例方法
+     3，构造方法
+     使用new作为方法标记，eg：TreeSet::new
+     
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class MethodReference {
+       
+        public static void main(String[] args) {
+              
+              List<String> list= new ArrayList<String>();
+               list.add( "YUE");
+               list.add( "TONG");
+              
+               list.forEach(System. out::println);
+              
+               list.forEach(Person:: new);//精明的是java引擎会自己推断应该调用带有String参数的构造方法
+              
+              Person p= new Person("YUE" );
+              
+              
+       }
+
+}
+//JavaBean
+class Person{
+       
+        private String name ;
+        private int age ;
+        public Person() {
+               super();
+              System. out.println("Without parameters" );
+       }
+       
+       
+        public Person(int age ) {
+               super();
+               this.age = age ;
+              System. out.println("With parameter age" );
+       }
+
+
+        public Person(String name ) {
+               super();
+               this.name = name ;
+              System. out.println("With parameter name" );
+       }
+        public Person(String name , int age) {
+               super();
+               this.name = name ;
+               this.age = age ;
+              
+              System. out.println("With parameter name,age" );
+       }
+        public String getName() {
+               return name ;
+       }
+        public void setName(String name) {
+               this.name = name ;
+       }
+        public int getAge() {
+               return age ;
+       }
+        public void setAge(int age) {
+               this.age = age ;
+       }
+       
+       
+}     
+
+3，Default method
+     接口可以含有一个默认的实现方法
+     主要是为了向后兼容,eg：在java8中为List/Collections添加了forEach方法，那么问题来了，以前写的那些继承了List/Collections两个接口的类怎么办，都要重新写一遍吗？
+     java8就是使用Default Method解决这个问题的，为所有的java类提供了一种默认的forEach实现。
+     
+     经过我自己查看java源码发现，在java8之前，List和Collections是没有实现Iterable接口的，在java8中实现了此接口，实现了forEach方法
+       default void forEach(Consumer<? super T> action) {
+           Objects.requireNonNull(action);
+           for (T t : this) {
+              action.accept(t);
+          }
+       }
+     
+4，Stream API
+     1>考虑一个这样的sql语句：SELECT max(salary),employee_id,employee_name FROM Employee
+   这个语句会自动返回最大值而且不需要再开发者终端的任何计算，但是使用collection时就必须使用循环来进行处理了
+   2>提高程序的执行效率---流水线式处理
+   3>Stream是什么：(java官网上的解释)
+        Sequence of elements - A stream provides a set of elements of specific type in a sequential manner. A stream gets/computes elements on demand. It never stores the elements.
+              Source - Stream takes Collections, Arrays or I/O resources as input source.
+              Aggregate Operations - Stream supports aggregate opearations like filter, map, limit, reduce, find, match and so on.
+              Pipelining - Most of the stream operations return stream itself so that their result can be pipelined. These operations are called intermiddiate operations and their function is to take input, 
+                                   process input and returns output to target. collect() method is a terminal opeation which is normally present at the end of the pipelining operation to mark the end of the stream.
+              Automatic Iterations - stream opearations do the iterations internally over the source elements provided in constrast to Collections where explicit iteration is required.
+     
+     使用：
+          Collection 接口的两个方法：
+               stream() -Returns a sequential stream considering collection as its source.
+               parallelStream() - Returns a parallel Stream considering collection as its source.
+
+代码示例：
+import java.util.Arrays;
+import java.util.IntSummaryStatistics;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+
+public class Stream {
+
+      public static void main(String[] args) {
+            List<String> strings = Arrays. asList("abc", "", "bc", "efg", "abcd",
+                         "", "jkl");
+            System. out.println( strings);
+
+             // filter()过滤掉空字符
+            List<String> filtered = strings.stream()
+                        .filter( string -> ! string.isEmpty())
+                        .collect(Collectors. toList());
+            System. out.println( filtered);
+
+             // forEach
+            Random random = new Random();
+             random.ints().limit(1).forEach(System. out::println);
+
+             // map()
+            List<Integer> numbers = Arrays. asList(3, 2, 2, 3, 7, 3, 5);
+            List<Integer> squaresList = numbers.stream().map( i -> i).distinct()
+                        .collect(Collectors. toList());
+            System. out.println( squaresList);
+
+             // parallelStream is alternative of stream for parallel processing
+             int count = ( int) strings.parallelStream()
+                        .filter( string -> string.isEmpty()).count();
+            System. out.println( count);
+
+             // Collector类用作连接处理，可以做需要的格式的连接，例如关键字之间加入逗号等
+            String mergedString = strings.stream()
+                        .filter( string -> ! string.isEmpty())
+                        .collect(Collectors. joining(", "));
+            System. out.println( "Merged String: " + mergedString );
+
+            IntSummaryStatistics stats = numbers.stream().mapToInt(( x) -> x)
+                        .summaryStatistics();
+
+            System. out.println( "Highest number in List : " + stats.getMax());
+            System. out.println( "Lowest  number in List : " + stats.getMin());
+            System. out.println( "Sum of all numbers : " + stats.getSum());
+            System. out.println( "Average of all  numbers : " + stats.getAverage());
+      }
+}
+5，Date Time API 
+     改进了date API
+     旧API存在的问题：
+          1>非线程安全
+          2>设计的缺陷
+          3>时区问题
+     java8中的date类
+          Local 
+          Zoned 
+6,Optional 
+它是一个不包含null值得容器对象。为了更好的体验，加强对null的处理
+import java.util.Optional;
+
+public class OptionalTest {
+      public static void main(String[] args) {
+            OptionalTest optionalTest = new OptionalTest();
+            Integer v1 = null;
+            Integer v2 = 100;
+
+            Optional<Integer> a = Optional. ofNullable(v1);
+            Optional<Integer> b = Optional. of(v2 );
+
+            System. out.println( optionalTest.sum( a, b));
+      }
+
+      public int sum(Optional<Integer> a, Optional<Integer> b) {
+
+             // Optional.isPresent - 检查当前值的数据类型是否正确
+            System. out.println( "First parameter is present: " + a.isPresent());
+            System. out.println( "Second parameter is present: " + b.isPresent());
+             // Optional.orElse - isPresent如果true返回当前值，否则返回默认值
+            Integer value1 = a.orElse( new Integer(0));
+             // Optional.get - 必须在isPresent返回true的时候使用该方法
+            Integer value2 = b.get();           
+             return value1+ value2;
+      }
+
+}
+7，Nashorn , JavaScript Engine
+     一个javascript执行引擎
+     替代当前Rhino javascript引擎，Nashorn 的速度是其2-10倍，Nashorn 基于内存，直接把 二进制代码传递给JVM.Nashorn
+     
+     Nashorn 中包含一个新的命令jjs，直接在控制台进行javascript处理
+
+补充：
+功能接口：
+java.util.Function中包含了java8中定义的许多Lambda表达式接口
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
+
+public class FunctionalInterface {
+
+        public static void main(String[] args) {
+
+              List<Integer> list = Arrays. asList(1, 2, 3, 4, 5, 6, 7, 8, 9);
+              //调用eval方法，传入功能方法，用于判断是否为偶数
+              FunctionalInterface. eval(list, n -> n % 2 == 0);
+
+       }
+
+        public static void eval(List<Integer> list, Predicate<Integer> predicate) {
+
+               for (Integer n : list ) {
+
+                      if (predicate .test(n )) {
+                           System. out.println(n );
+                     }
+
+              }
+
+       }
+}
+
+
+
+
+
+
